@@ -60,8 +60,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             id,
             body,
             completed,
-        } => {}
-        Commands::Delete { id } => {}
+        } => {
+            url.set_path(format!("v1/todos/{}", id).as_str());
+            let body = json!({"body": body, "completed": completed});
+            request::request(url, Method::PUT, Some(body.to_string())).await?;
+        }
+        Commands::Delete { id } => {
+            url.set_path(format!("v1/todos/{}", id).as_str());
+            request::request(url, Method::DELETE, None).await?;
+        }
     }
 
     Ok(())

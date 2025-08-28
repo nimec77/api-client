@@ -1,10 +1,13 @@
 use clap::{Parser, Subcommand};
-use hyper::Uri;
+use reqwest::{Method, Url};
+use serde_json::json;
+
+mod request;
 
 #[derive(Parser)]
 struct Cli {
     /// Base URL of the API server
-    url: hyper::Uri,
+    url: Url,
 
     #[command(subcommand)]
     command: Commands,
@@ -40,18 +43,19 @@ enum Commands {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    let mut uri_builder = Uri::builder();
-    if let Some(scheme) = cli.url.scheme() {
-        uri_builder = uri_builder.scheme(scheme.clone());
-    }
-
-    if let Some(authority) = cli.url.authority() {
-        uri_builder = uri_builder.authority(authority.clone());
-    }
+    let mut url = cli.url.clone();
 
     match cli.command {
-        Commands::List => {}
-        Commands::Create { body } => {}
+        Commands::List => {
+            url.set_path("v1/todos");
+            // Await the request and handle any error, converting it to a boxed error with Send + Sync
+            request::request(url, Method::GET, None).await?;
+        }
+        Commands::Create { body } => {
+            url.set_path("v1/todos");
+            let body = json!({"body": body});
+            request::request(url, Method::POST, Some(body.to_string())).await?;
+        }
         Commands::Update {
             id,
             body,
